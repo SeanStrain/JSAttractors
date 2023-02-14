@@ -1,0 +1,34 @@
+body
+{
+    margin: 0;
+    font-family: "Rubik", sans-serif;
+}
+
+#framerate
+{
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: #76B900;
+    padding: 5px;
+}
+
+#start-wrapper
+{
+    color: azure;
+    position: absolute;
+    left: 25vw;
+    right:25vw;
+    top: calc(50% - 2vh);
+    display: flex;
+    overflow: hidden;
+}
+
+#start
+{
+    height: 100%;
+    width: 100%;
+    font-size: 8vmin;
+    text-align: center;
+    will-change: transform;
+}
