@@ -152,54 +152,64 @@ let canvas  = new Canvas(context, canvasEl, canvasColour)
 context.lineWidth = 2
 
 let speed_modifier = 1 / 2
-let size_modifier = 30
-let size_modifier_x = 50
-let size_modifier_y = 28
-
 class Stroke
 {
-    constructor(begin_x, begin_y, end_x, end_y, z, colour, alpha)
+    constructor(begin_x, begin_y, end_x, end_y, z, alpha)
     {
-        this.begin_x = begin_x * size_modifier_x + midx
-        this.begin_y = begin_y * size_modifier_y + midy
-        this.end_x = end_x * size_modifier_x + midx
-        this.end_y = end_y * size_modifier_y + midy
+        this.begin_x = Math.floor(begin_x * size_modifier_x + midx)
+        this.begin_y = Math.floor(begin_y * size_modifier_y + midy)
+        this.end_x = Math.floor(end_x * size_modifier_x + midx)
+        this.end_y = Math.floor(end_y * size_modifier_y + midy)
         this.z = z
-        this.colour = colour
+
+        let hue = Math.abs(this.end_x / 10 + total_ticks)
+        let sat = Math.abs(this.end_y / 10)
+        this.colour = "hsl(" + hue + "," + sat + "%," + ((this.z) * 20 +50) + "%)"
+
+        this.new = true
 
         this.alpha = alpha
-        this.life = 80
+        this.life = 75
         this.minAlpha = this.alpha / this.life
     }
 
     draw()
     {
-        if (this.alpha > this.minAlpha) { this.alpha -= this.minAlpha }
+        this.new = false
+
+        this.alpha -= this.minAlpha
         context.globalAlpha = this.alpha
+
         context.beginPath()
         context.moveTo(this.begin_x, this.begin_y)
         context.lineTo(this.end_x, this.end_y)
 
-        let hue = Math.abs(this.end_x / 10 + total_ticks)
-        let sat = Math.abs(this.end_y / 10)
-        context.strokeStyle = "hsl(" + hue + "," + sat + "%," + Math.abs(this.z) + 50 + "%)"
+        context.strokeStyle = this.colour
         context.stroke()
+    }
+
+    update()
+    {
+        this.draw()
+        // if (this.alpha > this.minAlpha) { this.alpha -= this.minAlpha }
+        // context.globalAlpha = this.alpha
     }
 }
 
-
+let attractor = function(x, y, z) {}
 class Particle
 {
     constructor(x, y, radius, colour, velocity)
     {
         this.x = x
         this.y = y
-        this.z = 0.1
+        this.z = 1.82
         this.alpha = 1
         this.radius = radius
         this.base_radius = radius
         this.colour = colour
         this.velocity = velocity
+        this.attractor = attractor
     }
 
     draw()
@@ -211,57 +221,105 @@ class Particle
         let old_y = this.y
         let old_z = this.z
 
-        let framerate = speed_modifier *  1 / Math.max(60, fps)
+        let xyz = this.attractor(this.x, this.y, this.z)
+        this.x = xyz["x"]
+        this.y = xyz["y"]
+        this.z = xyz["z"]
 
-        switch (state)
+        strokes.push(new Stroke(old_y, old_z, this.y, this.z, this.x, 1))
+        if (show_particles)
         {
-            case 0:
-                this.x += (old_x + (old_y - old_x) * 10) * framerate
-                this.y += (old_x * (28 - old_z) - old_y) * framerate
-                this.z += (old_x * old_y - (8 / 3) * old_z) * framerate
-                this.radius = 0// this.z / 5 + 0.2
-                break
-
-            case 1:
-                let divisor = 1 / 1.3
-                let alpha = 0.95 / divisor
-                let beta = 0.7 / divisor
-                let gamma = 0.65 / divisor
-                let delta = 3.5 / divisor
-                let epsilon = 0.25 / divisor
-                let zeta = 0.1 / divisor
-
-                this.x += ((this.z - beta) * this.x - delta * this.y) * framerate
-                this.y += (delta * this.x + (this.z - beta) * this.y) * framerate
-                this.z += gamma + alpha * this.z - Math.pow(this.z, 3) / 3 - (Math.pow(this.x, 2) * Math.pow(this.y, 2)) * 1 + epsilon * this.z + zeta * this.z * Math.pow(this.x, 3) * framerate
-
-                break
+            let hue = Math.abs((this.x * size_modifier_x) + midx / 10)
+            let sat = Math.abs((this.y * size_modifier_y) + midy / 10)
+            context.beginPath()
+            context.fillStyle = "hsl(" + 0 + "," + 0 + "%," + 70 + "%)"
+            context.arc(Math.floor((this.z * size_modifier_x) + midx), Math.floor((this.y * size_modifier_y) + midy), this.radius, 0, Math.PI * 2)
+            context.fill()
         }
 
-
-
-        //let hue = Math.abs((this.x * size_modifier_x) + midx / 10)
-        //let sat = Math.abs((this.y * size_modifier_y) + midy / 10)
-       //context.fillStyle = "hsl(" + 0 + "," + 0 + "%," + 70 + "%)"
-        //context.arc((this.x * size_modifier_x) + midx, (this.y * size_modifier_y) + midy, this.radius, 0, Math.PI * 2)
-        //context.fill()
-
-        strokes.push(new Stroke(old_x, old_y, this.x, this.y, this.z, this.colour, 1))
     }
 }
 
-let num_particles = 80
+let num_particles = 90
 let particle_radius = 2
 let particles = []
 let strokes = []
+let state = 1
+let show_particles = false
 function init()
 {
-    for (var i = 1; i < num_particles; i += 1)
+    switch(state)
     {
-        let middle = 1.5
-        let particle = new Particle(-middle + i / 25, -middle + i / 25, particle_radius, randomHSL(), {x: 0.5, y: 0.5})
-        particles.push(particle)
+        case 0:
+            speed_modifier = 1 / 2
+            size_modifier_x = 50
+            size_modifier_y = 28
+            attractor = function(x, y, z)
+            {
+                framerate = speed_modifier //*  1 / Math.max(60, fps)
+                x += (x + (y - x) * 10) * framerate
+                y += (x * (28 - z) - y) * framerate
+                z += (x * y - (8 / 3) * z) * framerate
+                return {"x": x, "y": y, "z": z}
+            }
+            break
+
+        case 1:
+            speed_modifier = 2 / 60
+            size_modifier_x = 300
+            size_modifier_y = 300
+            attractor = function(x, y, z)
+            {
+                framerate = speed_modifier// *  1 / Math.max(60, fps)
+                let alpha = 0.95
+                let beta = 0.7
+                let gamma = 0.65
+                let delta = 3.5
+                let epsilon = 0.25
+                let zeta = 0.1
+
+                let temp_x = x
+
+                let sign = 1
+                if (y < 0)
+                {
+                    sign = -1
+                }
+                let temp_y = y + Math.random() * 0.001 * sign
+                let temp_z = z
+
+                temp_x += (((z - beta) * x) - (delta * y)) * framerate
+                temp_y += ((delta * x) + (z - beta) * y) * framerate
+
+                let z1 = (gamma + (alpha * z) - Math.pow(z, 3.0) / 3.0 - (Math.pow(x, 2.0) + Math.pow(y, 2.0)))
+                let z2 = (1 + epsilon * z) + (zeta * z * Math.pow(x, 3.0))
+
+                temp_z += z1 * z2 * framerate
+
+                x = temp_x
+                y = temp_y + Math.random() * 0.0001 * sign
+                z = temp_z
+                return {"x": x, "y": y, "z": z}
+            }
+            break
     }
+
+    j = num_particles
+    const interval = setInterval(() =>
+    {
+        let middle = 0
+        let particle = new Particle(0, Math.random()-0.5, particle_radius, randomHSL(), {x: 0.5, y: 0.5})
+        particles.push(particle)
+        if (j > 0) { j -= 1 }
+        if (j == 0) { clearInterval(interval) }
+    }, 75)
+
+    // for (var i = 1; i < num_particles; i += 1)
+    // {
+    //     let middle = 1.5
+    //     let particle = new Particle(-middle + i / 25, -middle + i / 25, particle_radius, randomHSL(), {x: 0.5, y: 0.5})
+    //     particles.push(particle)
+    // }
     canvas.initialise()
     animate()
 }
@@ -275,10 +333,6 @@ function animate()
     animationId = requestAnimationFrame(animate)
 
     canvas.update()
-    particles.forEach(particle =>
-    {
-        particle.draw()
-    })
 
     strokes.forEach((stroke, index) =>
     {
@@ -286,8 +340,19 @@ function animate()
         {
             strokes.splice(index, 1)
         } else {
-            stroke.draw()
+            if (stroke.new)
+            {
+                stroke.draw()
+            } else {
+                stroke.update()
+            }
+            
         }
+    })
+
+    particles.forEach(particle =>
+    {
+        particle.draw()
     })
 
     var now = Date.now()
@@ -295,7 +360,7 @@ function animate()
         lastFps = now
         fps = ticks
         ticks = 0
-       // document.getElementById("framerate").innerHTML = fps
+        document.getElementById("framerate").innerHTML = fps
     }
     total_ticks++
     ticks++
@@ -310,7 +375,6 @@ addEventListener("resize", (event) =>
     midy = canvasEl.height / 2
 })
 
-let state = 0
 let play = false
 addEventListener("click", (event) =>
 {
@@ -319,7 +383,7 @@ addEventListener("click", (event) =>
         play = true
         
         var audio = new Audio('Jeux.mp3');
-        audio.play();
+        //audio.play();
 
         gsap.to(document.getElementById("start"),
         {
