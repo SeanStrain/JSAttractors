@@ -2,14 +2,25 @@
     <head>
         <link href="styles.css" rel="stylesheet">
     </head>
-    <div id="framerate">
+    <body>
+        <div id="framerate">
 
-    </div>
-    <div id="start-wrapper">
-        <div id="start">Click to begin</div>
-    </div>
-    <canvas></canvas>
+        </div>
+        <div id="start-wrapper">
+            <div id="start">Click to begin</div>
+        </div>
+        <button id="menu-button" class="toggle-menu">
+            <div>Options</div>
+            <span id="menu-1"></span>
+            <span id="menu-2"></span>
+            <span id="menu-3"></span>
+        </button> 
+        <div id="menu">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.7.0/gsap.min.js"></script>
-    <script src="./lorenz.mjs"></script>
+        </div>
+        <canvas></canvas>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.7.0/gsap.min.js"></script>
+        <script src="./lorenz.mjs"></script>
+    </body>
 </html>

@@ -1,7 +1,12 @@
+:root
+{
+    font-family: "Helvetica", sans-serif;
+}
+
 body
 {
     margin: 0;
-    font-family: "Rubik", sans-serif;
+    overflow: hidden;
 }
 
 #framerate
@@ -32,3 +37,49 @@ body
     text-align: center;
     will-change: transform;
 }
+
+
+/* TOGGLE MENU: */
+.toggle-menu
+{
+    position: absolute;
+    float: right;
+    top: 10px;
+    right: 10px;
+    height: 50px;
+    width: 50px;
+    cursor: pointer;
+    background-color: transparent;
+    display: none;
+    border: none;
+}
+
+.visible
+{
+    display: block;
+}
+
+.toggle-menu > div
+{
+    color: whitesmoke;
+    position: absolute;
+    transform: translate(-140%, calc(-60px - 50%));
+    transition: transform 0.5s ease;
+}
+
+.toggle-menu:hover > div
+{
+    transform: translate(-140%, -50%);
+    transition: transform 0.5s ease;
+}
+
+.toggle-menu > span
+{
+    position: absolute;
+    display: block;
+    height: 2px;
+    width: 26px;
+    background-color: azure;
+    transform: translateY(calc(-60px - 50%));
+}
+/* END TOGGLE MENU */

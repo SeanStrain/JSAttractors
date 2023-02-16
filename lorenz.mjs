@@ -164,12 +164,12 @@ class Stroke
 
         let hue = Math.abs(this.end_x / 10 + total_ticks)
         let sat = Math.abs(this.end_y / 10)
-        this.colour = "hsl(" + hue + "," + sat + "%," + ((this.z) * 20 +50) + "%)"
+        this.colour = "hsl(" + hue + "," + sat + "%," + ((this.z) * 20 + 50) + "%)"
 
         this.new = true
 
         this.alpha = alpha
-        this.life = 75
+        this.life = 70
         this.minAlpha = this.alpha / this.life
     }
 
@@ -187,28 +187,23 @@ class Stroke
         context.strokeStyle = this.colour
         context.stroke()
     }
-
     update()
     {
         this.draw()
-        // if (this.alpha > this.minAlpha) { this.alpha -= this.minAlpha }
-        // context.globalAlpha = this.alpha
     }
 }
 
 let attractor = function(x, y, z) {}
 class Particle
 {
-    constructor(x, y, radius, colour, velocity)
+    constructor(x, y, radius)
     {
         this.x = x
         this.y = y
-        this.z = 1.82
+        this.z = 0
         this.alpha = 1
         this.radius = radius
         this.base_radius = radius
-        this.colour = colour
-        this.velocity = velocity
         this.attractor = attractor
     }
 
@@ -226,14 +221,14 @@ class Particle
         this.y = xyz["y"]
         this.z = xyz["z"]
 
-        strokes.push(new Stroke(old_y, old_z, this.y, this.z, this.x, 1))
+        strokes.push(new Stroke(old_x, old_y, this.x, this.y, this.z, 1))
         if (show_particles)
         {
             let hue = Math.abs((this.x * size_modifier_x) + midx / 10)
             let sat = Math.abs((this.y * size_modifier_y) + midy / 10)
             context.beginPath()
             context.fillStyle = "hsl(" + 0 + "," + 0 + "%," + 70 + "%)"
-            context.arc(Math.floor((this.z * size_modifier_x) + midx), Math.floor((this.y * size_modifier_y) + midy), this.radius, 0, Math.PI * 2)
+            context.arc(Math.floor((this.x * size_modifier_x) + midx), Math.floor((this.y * size_modifier_y) + midy), this.radius, 0, Math.PI * 2)
             context.fill()
         }
 
@@ -244,34 +239,71 @@ let num_particles = 90
 let particle_radius = 2
 let particles = []
 let strokes = []
-let state = 1
+let state = 0
 let show_particles = false
+let stroke_life = 70
+let resize_modifier = function() {}
 function init()
 {
+
+    document.getElementById("menu-button").classList.add("visible")
+    let spans = [document.getElementById("menu-1"), document.getElementById("menu-2"), document.getElementById("menu-3")]
+
+    spans.forEach((span, index) =>
+    {
+        setTimeout(() => {
+            target = 10 * index - 10
+            gsap.to(span,
+            {
+                transform: `translate(0, ${target}px)`,
+                duration: 0.8
+            })
+        }, 300 * index)
+    })
+
+    let start_x = 0
+    let start_y = 0
     switch(state)
     {
         case 0:
+            start_x = 0
+            start_y = 0
+
             speed_modifier = 1 / 2
-            size_modifier_x = 50
-            size_modifier_y = 28
+            resize_modifier = function()
+            {
+                size_modifier_x = 50
+                size_modifier_y = 28
+            }
+            resize_modifier()
+
             attractor = function(x, y, z)
             {
-                framerate = speed_modifier //*  1 / Math.max(60, fps)
+                framerate = speed_modifier *  1 / Math.max(60, fps)
                 x += (x + (y - x) * 10) * framerate
                 y += (x * (28 - z) - y) * framerate
                 z += (x * y - (8 / 3) * z) * framerate
                 return {"x": x, "y": y, "z": z}
             }
+
             break
 
         case 1:
+            start_x = 0
+            start_y = midy
+
             speed_modifier = 2 / 60
-            size_modifier_x = 300
-            size_modifier_y = 300
+            resize_modifier = function()
+            {
+                size_modifier_x = 0.25 * innerHeight
+                size_modifier_y = 0.25 * innerHeight
+            }
+            resize_modifier()
+
             attractor = function(x, y, z)
             {
                 framerate = speed_modifier// *  1 / Math.max(60, fps)
-                let alpha = 0.95
+                let alpha = 0.8
                 let beta = 0.7
                 let gamma = 0.65
                 let delta = 3.5
@@ -296,30 +328,26 @@ function init()
 
                 temp_z += z1 * z2 * framerate
 
-                x = temp_x
+                x = temp_x + Math.random() * 0.0001
                 y = temp_y + Math.random() * 0.0001 * sign
-                z = temp_z
+                z = temp_z + Math.random() * 0.0001
                 return {"x": x, "y": y, "z": z}
             }
+
             break
     }
 
     j = num_particles
+    i = - j / 2
     const interval = setInterval(() =>
     {
-        let middle = 0
-        let particle = new Particle(0, Math.random()-0.5, particle_radius, randomHSL(), {x: 0.5, y: 0.5})
+        let particle = new Particle(1 + i / 50, 0, particle_radius)
         particles.push(particle)
+        i += 1
         if (j > 0) { j -= 1 }
         if (j == 0) { clearInterval(interval) }
     }, 75)
 
-    // for (var i = 1; i < num_particles; i += 1)
-    // {
-    //     let middle = 1.5
-    //     let particle = new Particle(-middle + i / 25, -middle + i / 25, particle_radius, randomHSL(), {x: 0.5, y: 0.5})
-    //     particles.push(particle)
-    // }
     canvas.initialise()
     animate()
 }
@@ -343,10 +371,11 @@ function animate()
             if (stroke.new)
             {
                 stroke.draw()
-            } else {
-                stroke.update()
             }
-            
+            else
+            {
+                stroke.update() // exists in case I find a way to optimise drawing
+            }
         }
     })
 
@@ -370,6 +399,8 @@ addEventListener("resize", (event) =>
 {
     canvasEl.width  = innerWidth
     canvasEl.height = innerHeight
+
+    resize_modifier()
 
     midx = canvasEl.width  / 2
     midy = canvasEl.height / 2
@@ -398,5 +429,3 @@ addEventListener("click", (event) =>
     }
 
 })
-
-//window.onload = init()
