@@ -1,14 +1,13 @@
 // GLOBALS:
 
 var canvasEl  = document.querySelector('canvas')
-var context   = canvasEl.getContext('2d', { alpha: false })
-
+var context   = canvasEl.getContext('2d')
 
 canvasEl.width  = innerWidth
 canvasEl.height = innerHeight
 
-var midx = canvasEl.width  / 2
-var midy = canvasEl.height / 2
+var midx = innerWidth  / 2
+var midy = innerHeight / 2
 
 // COLOUR
 
@@ -124,37 +123,40 @@ function randomHSL(hue, sat, light)
 }
 
 // MAIN:
-
+// CANVAS:
 class Canvas
 {
-    constructor(context, canvas, colour)
+    constructor(canvas, context, colour, id)
     {
       this.context    = context
       this.canvas     = canvas
       this.colour     = colour
       this.baseColour = colour
+      this.id         = id
       this.update = function()
         {
-            this.context.fillStyle = this.colour.hsl
+            this.context.fillStyle = this.colour
             this.context.clearRect(0, 0, innerWidth, innerHeight)
         }
     }
 
     initialise()
     {
-        this.context.fillStyle = this.colour.hsl
+        this.context.fillStyle = this.colour
         this.context.fillRect(0, 0, innerWidth, innerHeight)
     }
 }
 
-var canvasColour = new HSLObject(0, 10, 10)
-let canvas  = new Canvas(context, canvasEl, canvasColour)
+var canvasColour = `rbga(${0}, ${0}, ${0}, 0.005)`
+var canvas  = new Canvas(canvasEl, context, canvasColour, '0')
 context.lineWidth = 2
 
-let speed_modifier = 1 / 2
+// STROKE:
+var speed_modifier = 1 / 2
+var colour = function() {}
 class Stroke
 {
-    constructor(begin_x, begin_y, end_x, end_y, z, alpha)
+    constructor(begin_x, begin_y, end_x, end_y, z, alpha, context)
     {
         this.begin_x = Math.floor(begin_x * size_modifier_x + midx)
         this.begin_y = Math.floor(begin_y * size_modifier_y + midy)
@@ -162,15 +164,17 @@ class Stroke
         this.end_y = Math.floor(end_y * size_modifier_y + midy)
         this.z = z
 
-        let hue = Math.abs(this.end_x / 10 + total_ticks)
-        let sat = Math.abs(this.end_y / 10)
-        this.colour = "hsl(" + hue + "," + sat + "%," + ((this.z) * 20 + 50) + "%)"
-
-        this.new = true
-
         this.alpha = alpha
         this.life = 70
         this.minAlpha = this.alpha / this.life
+
+        this.context = context
+
+        var hue = Math.abs(this.end_x / 10 + total_ticks)
+        var sat = Math.abs(this.end_y / 10)
+        this.colour = colour(hue, sat, this.z)
+
+        this.new = true
     }
 
     draw()
@@ -193,17 +197,23 @@ class Stroke
     }
 }
 
-let attractor = function(x, y, z) {}
+// PARTICLE:
 class Particle
 {
-    constructor(x, y, radius)
+    constructor(x, y, radius, context)
     {
         this.x = x
         this.y = y
         this.z = 0
-        this.alpha = 1
+
         this.radius = radius
         this.base_radius = radius
+
+        this.context = context
+
+
+        this.alpha = 1
+
         this.attractor = attractor
     }
 
@@ -212,87 +222,192 @@ class Particle
         //context.globalAlpha = this.alpha
         //context.beginPath()
 
-        let old_x = this.x
-        let old_y = this.y
-        let old_z = this.z
+        var old_x = this.x
+        var old_y = this.y
+        var old_z = this.z
 
-        let xyz = this.attractor(this.x, this.y, this.z)
+        var xyz = this.attractor(this.x, this.y, this.z)
         this.x = xyz["x"]
         this.y = xyz["y"]
         this.z = xyz["z"]
 
-        strokes.push(new Stroke(old_x, old_y, this.x, this.y, this.z, 1))
+        var stroke = new Stroke(old_x, old_y, this.x, this.y, this.z, 1, this.context)
+        if (drawing) strokes.push(stroke)
         if (show_particles)
         {
-            let hue = Math.abs((this.x * size_modifier_x) + midx / 10)
-            let sat = Math.abs((this.y * size_modifier_y) + midy / 10)
+            var hue = Math.abs((this.x * size_modifier_x) + midx / 10)
+            var sat = Math.abs((this.y * size_modifier_y) + midy / 10)
             context.beginPath()
-            context.fillStyle = "hsl(" + 0 + "," + 0 + "%," + 70 + "%)"
+            context.fillStyle = colour(hue, sat, this.z)
             context.arc(Math.floor((this.x * size_modifier_x) + midx), Math.floor((this.y * size_modifier_y) + midy), this.radius, 0, Math.PI * 2)
             context.fill()
         }
-
     }
 }
 
-let num_particles = 90
-let particle_radius = 2
-let particles = []
-let strokes = []
-let state = 0
-let show_particles = false
-let stroke_life = 70
-let resize_modifier = function() {}
+// FUNCTIONS:
+var particles = []
+var strokes = []
+var state = 0
+var show_particles = false
+var stroke_life = 70
+var size_modifier_x = 1
+var size_modifier_y = 1
+var drawing = true
+var first_init = true
+var resize_modifier = function() {}
+var generation = function() {}
+var attractor = function(x, y, z) {}
 function init()
 {
+    var num_particles = 90
+    var particle_radius = 2
 
     document.getElementById("menu-button").classList.add("visible")
-    let spans = [document.getElementById("menu-1"), document.getElementById("menu-2"), document.getElementById("menu-3")]
+    var spans = [document.getElementById("menu-1"), document.getElementById("menu-2"), document.getElementById("menu-3")]
 
-    spans.forEach((span, index) =>
+    const things = $('#variable-wrapper').children()
+    for (i = 1; i < things.length; i++)
     {
-        setTimeout(() => {
-            target = 10 * index - 10
-            gsap.to(span,
-            {
-                transform: `translate(0, ${target}px)`,
-                duration: 0.8
-            })
-        }, 300 * index)
-    })
+        things[i].style.display = "none"
+    }
 
-    let start_x = 0
-    let start_y = 0
+    if (first_init)
+    {
+        spans.forEach((span, index) =>
+        {
+            setTimeout(() => {
+                target = 10 * index - 10
+                gsap.to(span,
+                {
+                    transform: `translate(0, ${target}px)`,
+                    duration: 0.8
+                })
+            }, 300 * index)
+        })
+    }
+
+    var start_x = 0
+    var start_y = 0
     switch(state)
     {
-        case 0:
+        case 0: // Lorenz
+            
+            var alpha, beta, rho
+
+            document.getElementById("lorenz-variables").style.display = ""
+            document.getElementById("lorenz-alpha").addEventListener("input", function()
+            {
+                alpha = parseFloat(document.getElementById("lorenz-alpha").value)
+            })
+            document.getElementById("lorenz-beta").addEventListener("input", function()
+            {
+                beta = parseFloat(document.getElementById("lorenz-beta").value)
+            })
+            document.getElementById("lorenz-rho").addEventListener("input", function()
+            {
+                rho = parseFloat(document.getElementById("lorenz-rho").value)
+            })
+
+            alpha = 10
+            beta = 2.7
+            rho = 28
+
             start_x = 0
             start_y = 0
 
             speed_modifier = 1 / 2
+
             resize_modifier = function()
             {
-                size_modifier_x = 50
-                size_modifier_y = 28
+                size_modifier_x = innerWidth / 45
+                size_modifier_y = innerHeight / 60
             }
             resize_modifier()
 
+            colour = function(hue, sat, z)
+            {
+                return "hsl(" + hue + "," + sat + "%," + (Math.abs(z) + 50) + "%)"
+            }
+
+            generation = function()
+            {
+                for (var i = 1; i < num_particles; i += 1)
+                {
+                    let middle = 1.5
+                    let particle = new Particle(-middle + i / 25, -middle + i / 25, particle_radius)
+                    particles.push(particle)
+                }
+            }
+
+            var min_x = 0
+            var max_x = 0
+            var min_y = 0
+            var max_y = 0
+            var min_z = 0
+            var max_z = 0
             attractor = function(x, y, z)
             {
-                framerate = speed_modifier *  1 / Math.max(60, fps)
-                x += (x + (y - x) * 10) * framerate
-                y += (x * (28 - z) - y) * framerate
-                z += (x * y - (8 / 3) * z) * framerate
+                console.log(alpha)
+                framerate = speed_modifier * 0.017
+                x += (x + (y - x) * alpha) * framerate
+                y += (x * (rho - z) - y) * framerate
+                z += (x * y - beta * z) * framerate
+                
+                if (x < min_x) { min_x = x }
+                if (x > max_x) { max_x = x }
+                if (y < min_y) { min_y = y }
+                if (y > max_y) { max_y = y }
+                if (z < min_z) { min_z = z }
+                if (z > max_z) { max_z = z }
+
+                //console.log(min_x, max_x, min_y, max_y, min_z, max_z)
+
                 return {"x": x, "y": y, "z": z}
             }
 
-            break
+            break   
 
-        case 1:
+        case 1: // Aizawa
+
+            var alpha = 0.8
+            var beta = 0.7
+            var gamma = 0.65
+            var delta = 3.5
+            var epsilon = 0.25
+            var zeta = 0.1
+
+            document.getElementById("aizawa-variables").style.display = ""
+            document.getElementById("aizawa-alpha").addEventListener("input", function()
+            {
+                alpha = parseFloat(document.getElementById("aizawa-alpha").value)
+            })
+            document.getElementById("aizawa-beta").addEventListener("input", function()
+            {
+                beta = parseFloat(document.getElementById("aizawa-beta").value)
+            })
+            document.getElementById("aizawa-gamma").addEventListener("input", function()
+            {
+                gamma = parseFloat(document.getElementById("aizawa-gamma").value)
+            })
+            document.getElementById("aizawa-delta").addEventListener("input", function()
+            {
+                delta = parseFloat(document.getElementById("aizawa-delta").value)
+            })
+            document.getElementById("aizawa-epsilon").addEventListener("input", function()
+            {
+                epsilon = parseFloat(document.getElementById("aizawa-epsilon").value)
+            })
+            document.getElementById("aizawa-zeta").addEventListener("input", function()
+            {
+                zeta = parseFloat(document.getElementById("aizawa-zeta").value)
+            })
+    
             start_x = 0
             start_y = midy
 
             speed_modifier = 2 / 60
+
             resize_modifier = function()
             {
                 size_modifier_x = 0.25 * innerHeight
@@ -300,31 +415,44 @@ function init()
             }
             resize_modifier()
 
+            colour = function(hue, sat, z)
+            {
+                return "hsl(" + hue + "," + sat + "%," + (z * 20 + 50) + "%)"
+            }
+
+            generation = function()
+            {
+                j = num_particles
+                i = - j / 2
+                const interval = setInterval(() =>
+                {
+                    var particle = new Particle(1 + i / 50, 0, particle_radius, context)
+                    particles.push(particle)
+                    i += 1
+                    if (j > 0) { j -= 1 }
+                    if (j == 0) { clearInterval(interval) }
+                }, 75)
+            }
+
             attractor = function(x, y, z)
             {
                 framerate = speed_modifier// *  1 / Math.max(60, fps)
-                let alpha = 0.8
-                let beta = 0.7
-                let gamma = 0.65
-                let delta = 3.5
-                let epsilon = 0.25
-                let zeta = 0.1
 
-                let temp_x = x
+                var temp_x = x
 
-                let sign = 1
+                var sign = 1
                 if (y < 0)
                 {
                     sign = -1
                 }
-                let temp_y = y + Math.random() * 0.001 * sign
-                let temp_z = z
+                var temp_y = y + Math.random() * 0.001 * sign
+                var temp_z = z
 
                 temp_x += (((z - beta) * x) - (delta * y)) * framerate
                 temp_y += ((delta * x) + (z - beta) * y) * framerate
 
-                let z1 = (gamma + (alpha * z) - Math.pow(z, 3.0) / 3.0 - (Math.pow(x, 2.0) + Math.pow(y, 2.0)))
-                let z2 = (1 + epsilon * z) + (zeta * z * Math.pow(x, 3.0))
+                var z1 = (gamma + (alpha * z) - Math.pow(z, 3.0) / 3.0 - (Math.pow(x, 2.0) + Math.pow(y, 2.0)))
+                var z2 = (1 + epsilon * z) + (zeta * z * Math.pow(x, 3.0))
 
                 temp_z += z1 * z2 * framerate
 
@@ -333,33 +461,33 @@ function init()
                 z = temp_z + Math.random() * 0.0001
                 return {"x": x, "y": y, "z": z}
             }
-
             break
     }
 
-    j = num_particles
-    i = - j / 2
-    const interval = setInterval(() =>
-    {
-        let particle = new Particle(1 + i / 50, 0, particle_radius)
-        particles.push(particle)
-        i += 1
-        if (j > 0) { j -= 1 }
-        if (j == 0) { clearInterval(interval) }
-    }, 75)
+    generation()
 
     canvas.initialise()
-    animate()
+    if (first_init) {
+        animate()
+        first_init = false
+    }
 }
 
-let total_ticks = 0
-let ticks = 0
-let fps = 60
-let lastFps = 0
+var total_ticks = 0
+var ticks = 0
+var fps = 60
+var lastFps = 0
 function animate()
 {
-    animationId = requestAnimationFrame(animate)
+    if (drawing === false) { 
+        var total_ticks = 0
+        var ticks = 0
+        var fps = 60
+        var lastFps = 0
+        return 
+    }
 
+    animationId = requestAnimationFrame(animate)
     canvas.update()
 
     strokes.forEach((stroke, index) =>
@@ -406,7 +534,7 @@ addEventListener("resize", (event) =>
     midy = canvasEl.height / 2
 })
 
-let play = false
+var play = false
 addEventListener("click", (event) =>
 {
     if (!play)
@@ -418,7 +546,8 @@ addEventListener("click", (event) =>
 
         gsap.to(document.getElementById("start"),
         {
-            transform: `translate(0, -140%)`,
+            color: "transparent",
+            //transform: `translate(0, -140%)`,
             duration: 0.8
         })
 
@@ -428,4 +557,41 @@ addEventListener("click", (event) =>
         }, 800)
     }
 
+})
+
+function clearup()
+{
+    drawing = false
+    // while (strokes.length != 0)
+    // {
+    //     strokes.forEach((stroke, index) =>
+    //     {
+    //         stroke.draw()
+    //         if (stroke.alpha < stroke.minAlpha)
+    //         {
+    //             strokes.splice(index, 1)
+    //         }
+    //     })
+    // }
+    particles = []
+    strokes = []
+    drawing = true
+}
+
+var attractor_state = document.getElementById('attractor-state')
+attractor_state.addEventListener("change", function() 
+{
+    console.log(attractor_state.value)
+    switch (attractor_state.value)
+    {
+        case "0":
+            state = 0
+            clearup()
+            break
+        case "1":
+            state = 1
+            clearup()
+            break
+    }
+    init()
 })

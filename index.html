@@ -1,8 +1,9 @@
 <html>
     <head>
         <link href="styles.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/p5@1.5.0/lib/p5.js"></script>
     </head>
-    <body>
+    <body id="body">
         <div id="framerate">
 
         </div>
@@ -15,12 +16,63 @@
             <span id="menu-2"></span>
             <span id="menu-3"></span>
         </button> 
-        <div id="menu">
-
+        <div id="menu" class="menu">
+            <div class="menu-item-wrapper">
+                <div>Attractor Type:</div>
+                <select class="menu-item" id="attractor-state">
+                    <option selected value="0">Lorenz</option>
+                    <option value="1">Aizawa</option>
+                </select>
+            </div>
+            <div id="variable-wrapper" class="menu-item-wrapper">
+                <div>Variables</div>
+                <div id="lorenz-variables" style="display: none">
+                    <div class="menu-item">
+                        <div>σ:</div>
+                        <input type="number" id="lorenz-alpha" value="10" step="0.1">
+                    </div>
+                    <div class="menu-item">
+                        <div>ρ:</div>
+                        <input type="number" id="lorenz-rho" value="28" step="0.1">
+                    </div>
+                    <div class="menu-item">
+                        <div>β:</div>
+                        <input type="number" id="lorenz-beta" value="2.7" step="0.1">
+                    </div>
+                </div>
+                <div id="aizawa-variables" style="display: none">
+                    <div class="menu-item">
+                        <div>σ:</div>
+                        <input type="number" id="aizawa-alpha" value="0.80" step="0.05">
+                    </div>
+                    <div class="menu-item">
+                        <div>β:</div>
+                        <input type="number" id="aizawa-beta" value="0.70" step="0.05">
+                    </div>
+                    <div class="menu-item">
+                        <div>gamma:</div>
+                        <input type="number" id="aizawa-gamma" value="0.65" step="0.05">
+                    </div>
+                    <div class="menu-item">
+                        <div>delta:</div>
+                        <input type="number" id="aizawa-delta" value="3.5" step="0.1">
+                    </div>
+                    <div class="menu-item">
+                        <div>epsilon:</div>
+                        <input type="number" id="aizawa-epsilon" value="0.25" step="0.05">
+                    </div>
+                    <div class="menu-item">
+                        <div>zeta:</div>
+                        <input type="number" id="aizawa-zeta" value="0.10" step="0.05">
+                    </div>
+                </div>
+            </div>
         </div>
         <canvas></canvas>
 
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.7.0/gsap.min.js"></script>
         <script src="./lorenz.mjs"></script>
+        <script src="./userInput.mjs"></script>
     </body>
 </html>
